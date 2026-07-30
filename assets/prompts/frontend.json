@@ -1,0 +1,31 @@
+{
+  "id": "frontend",
+  "name": "前端",
+  "description": "界面、交互与浏览器端工程约束",
+  "blocks": [
+    {
+      "type": "instruction",
+      "id": "responsive-ui",
+      "name": "响应式界面",
+      "summary": "覆盖桌面端、平板与移动端布局",
+      "icon": "UI",
+      "prompt": "实现响应式界面：从窄屏开始设计，在内容需要时设置断点；避免固定宽度导致溢出；保证触控目标尺寸合理，并在桌面端充分利用可用空间。"
+    },
+    {
+      "type": "instruction",
+      "id": "accessible-interactions",
+      "name": "无障碍交互",
+      "summary": "键盘、语义结构与状态提示",
+      "icon": "A11Y",
+      "prompt": "所有交互必须支持键盘操作和清晰的焦点状态。优先使用语义化 HTML；为纯图标控件提供可读名称；动态状态通过合适的 ARIA live 区域反馈；颜色不是唯一的信息载体。"
+    },
+    {
+      "type": "instruction",
+      "id": "state-design",
+      "name": "完整页面状态",
+      "summary": "加载、空数据、错误与成功反馈",
+      "icon": "ST",
+      "prompt": "为页面实现完整状态：初始、加载、空数据、成功和错误。异步操作期间防止重复提交，错误信息应具体且可恢复，不用无意义的占位内容掩盖未处理状态。"
+    }
+  ]
+}

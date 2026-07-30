@@ -1,0 +1,47 @@
+{
+  "app": { "name": "PromptPair", "tagline": "Composable Prompt Studio", "pageTitle": "PromptPair · Prompt 积木工作台", "about": "关于", "settings": "打开设置" },
+  "status": { "connected": "模型已就绪", "notConfigured": "模型未配置", "checking": "检查模型配置" },
+  "types": { "role": "角色", "instruction": "指令", "context": "上下文", "constraint": "约束", "quality": "质量" },
+  "library": {
+    "eyebrow": "Block Library", "title": "Prompt 积木库", "searchPlaceholder": "搜索积木名称或说明...",
+    "searchShortcut": "/", "categoryLabel": "Prompt 分类", "allCategories": "全部",
+    "noResults": "没有找到匹配的积木。可以修改搜索词或切换分类。", "addBlock": "添加 {name}",
+    "emphasized": "着重强调", "limitReached": "同一个积木最多使用两次；两次已标记为着重强调", "limitLabel": "{name} 已使用两次并着重强调"
+  },
+  "composer": {
+    "eyebrow": "Composition Canvas", "title": "Prompt 融合工作台",
+    "description": "角色会融合为一个外层身份，其他积木在角色内部按顺序执行。",
+    "emptyTitle": "从一块积木开始", "emptyDescription": "点击左侧积木，或将它拖到这里。不同类别可以自由组合。",
+    "roleFrame": "融合角色", "roleCount": "{count} 个角色视角", "roleEmpty": "尚未选择角色；当前要求将以通用助手身份执行。",
+    "requirements": "角色内部要求", "requirementsEmpty": "继续添加指令、上下文、约束或质量积木。",
+    "contentLabel": "{name} 的 Prompt 内容", "moveUp": "上移 {name}", "moveDown": "下移 {name}",
+    "remove": "移除 {name}", "dropLabel": "将 Prompt 积木放置到这里", "emphasis": "着重强调"
+  },
+  "generate": {
+    "readyTitle": "准备融合", "estimate": "约 {tokens} tokens · {blocks} 块", "button": "生成最终 Prompt",
+    "generating": "正在融合...", "emptyError": "请先添加至少一个 Prompt 积木",
+    "success": "最终 Prompt 已生成", "failed": "生成失败：{message}"
+  },
+  "result": {
+    "eyebrow": "Generated Output", "title": "最终 Prompt", "placeholder": "融合后的 Prompt 会出现在这里。模型会合并角色视角并保留内部积木的关键约束。",
+    "copy": "复制", "copied": "已复制", "copySuccess": "已复制原始 Markdown", "close": "关闭最终 Prompt", "streaming": "模型正在流式生成 Markdown…"
+  },
+  "actions": {
+    "clear": "清空", "share": "分享配方", "themeLight": "切换到浅色模式", "themeDark": "切换到深色模式"
+  },
+  "sharing": {
+    "eyebrow": "Recipe Code", "title": "分享配方",
+    "description": "复制这段配方代码进行分享，或粘贴别人分享的代码并应用。当前页面地址不会改变。",
+    "codeLabel": "配方代码", "copy": "复制代码", "apply": "应用配方", "close": "关闭分享配方",
+    "copySuccess": "配方代码已复制", "applySuccess": "配方已应用"
+  },
+  "settings": {
+    "eyebrow": "Workspace Settings", "title": "设置", "close": "关闭设置", "general": "常规", "blocks": "积木",
+    "language": "界面语言", "languageDescription": "语言保存后立即刷新全部界面文案。",
+    "blocksDescription": "选择分类和积木后编辑。更改会自动写回 JSON 配置并实时生效。",
+    "categoryLabel": "分类", "blockLabel": "积木", "editorLabel": "积木编辑器", "categoryName": "分类名称", "categoryDescription": "分类说明",
+    "name": "名称", "summary": "说明", "icon": "图标文字", "type": "积木类型", "prompt": "Prompt 内容",
+    "saving": "保存中...", "saved": "已保存", "saveFailed": "保存失败：{message}", "chooseBlock": "选择一块积木开始编辑。"
+  },
+  "errors": { "loadFailed": "配置加载失败，请检查资源文件后刷新页面。", "invalidRecipe": "配方代码无法识别", "clipboardFailed": "无法访问剪贴板，请手动复制" }
+}

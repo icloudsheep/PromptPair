@@ -1,0 +1,8 @@
+{
+  "id": "knowledge", "name": "知识库", "description": "引导模型使用上下文和外部资料",
+  "blocks": [
+    { "type": "context", "id": "context-first", "name": "上下文优先", "summary": "先使用已提供资料，再补充通用知识", "icon": "CTX", "prompt": "优先依据当前对话和知识库中提供的资料回答。资料与通用知识冲突时指出差异并以资料为准；资料不足时明确缺口，不得编造不存在的事实、接口或引用。" },
+    { "type": "context", "id": "source-grounding", "name": "来源锚定", "summary": "让重要结论可以回溯和核验", "icon": "SRC", "prompt": "重要事实与结论必须能够回溯到给定来源。引用时给出足以定位原文的标题、章节或链接；清楚区分来源中的事实、合理推断和建议，不虚构引用。" },
+    { "type": "context", "id": "knowledge-synthesis", "name": "多来源归纳", "summary": "合并共识并保留关键分歧", "icon": "SYN", "prompt": "综合多个来源时，先提取共同事实，再标示口径、时间范围或立场导致的分歧。不要用简单多数覆盖高质量证据；结论应说明适用条件及仍待确认的问题。" }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "app": { "name": "PromptPair", "tagline": "Composable Prompt Studio", "pageTitle": "PromptPair · Prompt Block Studio", "about": "About", "settings": "Open settings" },
+  "status": { "connected": "Model ready", "notConfigured": "Model not configured", "checking": "Checking model" },
+  "types": { "role": "Role", "instruction": "Instruction", "context": "Context", "constraint": "Constraint", "quality": "Quality" },
+  "library": {
+    "eyebrow": "Block Library", "title": "Prompt blocks", "searchPlaceholder": "Search names or descriptions...",
+    "searchShortcut": "/", "categoryLabel": "Prompt categories", "allCategories": "All",
+    "noResults": "No matching blocks. Change the search or category.", "addBlock": "Add {name}",
+    "emphasized": "Emphasized", "limitReached": "A block can be used twice at most; both copies are now emphasized", "limitLabel": "{name} is used twice and emphasized"
+  },
+  "composer": {
+    "eyebrow": "Composition Canvas", "title": "Prompt composer",
+    "description": "Roles merge into one outer identity. Other blocks run in order inside that role.",
+    "emptyTitle": "Start with a block", "emptyDescription": "Click a block on the left or drag it here. Categories can be freely combined.",
+    "roleFrame": "Merged role", "roleCount": "{count} role perspectives", "roleEmpty": "No role selected. Requirements will use a general assistant identity.",
+    "requirements": "Role requirements", "requirementsEmpty": "Add instructions, context, constraints, or quality blocks.",
+    "contentLabel": "Prompt content for {name}", "moveUp": "Move {name} up", "moveDown": "Move {name} down",
+    "remove": "Remove {name}", "dropLabel": "Drop Prompt blocks here", "emphasis": "Emphasized"
+  },
+  "generate": {
+    "readyTitle": "Ready to merge", "estimate": "About {tokens} tokens · {blocks} blocks", "button": "Generate final Prompt",
+    "generating": "Merging...", "emptyError": "Add at least one Prompt block",
+    "success": "Final Prompt generated", "failed": "Generation failed: {message}"
+  },
+  "result": {
+    "eyebrow": "Generated Output", "title": "Final Prompt", "placeholder": "Your merged Prompt will appear here. The model combines roles and preserves key constraints.",
+    "copy": "Copy", "copied": "Copied", "copySuccess": "Raw Markdown copied", "close": "Close final Prompt", "streaming": "The model is streaming Markdown…"
+  },
+  "actions": {
+    "clear": "Clear", "share": "Share recipe", "themeLight": "Switch to light mode", "themeDark": "Switch to dark mode"
+  },
+  "sharing": {
+    "eyebrow": "Recipe Code", "title": "Share recipe",
+    "description": "Copy this recipe code to share it, or paste someone else's code and apply it. The page address will not change.",
+    "codeLabel": "Recipe code", "copy": "Copy code", "apply": "Apply recipe", "close": "Close recipe sharing",
+    "copySuccess": "Recipe code copied", "applySuccess": "Recipe applied"
+  },
+  "settings": {
+    "eyebrow": "Workspace Settings", "title": "Settings", "close": "Close settings", "general": "General", "blocks": "Blocks",
+    "language": "Interface language", "languageDescription": "All interface text refreshes immediately after saving.",
+    "blocksDescription": "Select a category and block to edit. Changes are saved to JSON and applied live.",
+    "categoryLabel": "Category", "blockLabel": "Block", "editorLabel": "Block editor", "categoryName": "Category name", "categoryDescription": "Category description",
+    "name": "Name", "summary": "Summary", "icon": "Icon text", "type": "Block type", "prompt": "Prompt content",
+    "saving": "Saving...", "saved": "Saved", "saveFailed": "Save failed: {message}", "chooseBlock": "Choose a block to start editing."
+  },
+  "errors": { "loadFailed": "Configuration failed to load. Check the resource files and refresh.", "invalidRecipe": "The recipe code is invalid", "clipboardFailed": "Clipboard access failed; copy it manually" }
+}

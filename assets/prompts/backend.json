@@ -1,0 +1,8 @@
+{
+  "id": "backend", "name": "后端", "description": "接口、数据处理与服务可靠性",
+  "blocks": [
+    { "type": "instruction", "id": "api-contract", "name": "API 契约设计", "summary": "稳定、一致且可演进的接口", "icon": "API", "prompt": "设计清晰稳定的 API 契约。统一资源命名、状态码、分页和错误结构；在边界处校验输入；兼容已有调用方；涉及破坏性变更时提供明确的版本与迁移策略。" },
+    { "type": "constraint", "id": "security-baseline", "name": "服务安全基线", "summary": "输入校验、权限与敏感信息保护", "icon": "SEC", "prompt": "遵循最小权限原则。所有外部输入均不可信并在服务端验证；敏感凭据不得进入客户端、日志或源码；使用参数化查询；为鉴权、越权、重放与速率滥用设置相应防护。" },
+    { "type": "instruction", "id": "observability", "name": "可观测性", "summary": "结构化日志、指标与故障定位", "icon": "OBS", "prompt": "为关键路径提供可观测性。使用结构化日志并携带请求关联标识，记录必要上下文但排除密钥和个人敏感信息；区分可预期业务失败与系统异常，并为关键健康指标预留采集点。" }
+  ]
+}
