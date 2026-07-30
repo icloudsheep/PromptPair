@@ -25,3 +25,17 @@ export function saveCategory(category) {
     body: JSON.stringify(category)
   });
 }
+
+export function createCategory(category) {
+  return request("/api/settings/prompts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(category)
+  });
+}
+
+export function deleteCategory(categoryId) {
+  return request("/api/settings/prompts/" + encodeURIComponent(categoryId), {
+    method: "DELETE"
+  });
+}

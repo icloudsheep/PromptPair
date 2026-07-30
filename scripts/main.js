@@ -1,13 +1,13 @@
-import { createStore } from "./core/store.js";
-import { loadApplication } from "./services/config-service.js";
-import { generatePrompt, getModelStatus } from "./services/api-service.js";
-import { initializeTheme } from "./modules/theme.js";
-import { initializeLibrary } from "./modules/library.js";
-import { initializeComposer } from "./modules/composer.js";
-import { initializeSettings } from "./modules/settings.js";
-import { parseRecipe, serializeRecipe } from "./modules/sharing.js";
-import { applyMessages, icon, interpolate, showToast } from "./utils/dom.js";
-import { renderMarkdown } from "./utils/markdown.js";
+import { createStore } from "./core/store.js?v=20260730.3";
+import { loadApplication } from "./services/config-service.js?v=20260730.3";
+import { generatePrompt, getModelStatus } from "./services/api-service.js?v=20260730.3";
+import { initializeTheme } from "./modules/theme.js?v=20260730.3";
+import { initializeLibrary } from "./modules/library.js?v=20260730.3";
+import { initializeComposer } from "./modules/composer.js?v=20260730.8";
+import { initializeSettings } from "./modules/settings.js?v=20260730.12";
+import { parseRecipe, serializeRecipe } from "./modules/sharing.js?v=20260730.3";
+import { applyMessages, icon, interpolate, showToast } from "./utils/dom.js?v=20260730.3";
+import { renderMarkdown } from "./utils/markdown.js?v=20260730.3";
 
 async function copyText(value, messages) {
   try { await navigator.clipboard.writeText(value); return true; }
@@ -27,8 +27,9 @@ async function start() {
 
   const repoLink = document.querySelector("#repo-link");
   repoLink.href = app.repositoryUrl || "/README.md";
-  repoLink.textContent = messages.app.about;
+  repoLink.innerHTML = icon("info");
   repoLink.ariaLabel = messages.app.about;
+  repoLink.title = messages.app.about;
 
   const store = createStore({ blocks: [], result: "", generating: false });
   let composer;

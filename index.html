@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/themes/base.css" />
-    <link rel="stylesheet" href="/themes/light.css" />
-    <link rel="stylesheet" href="/themes/dark.css" />
-    <script type="module" src="/scripts/main.js"></script>
+    <link rel="stylesheet" href="/themes/base.css?v=20260730.13" />
+    <link rel="stylesheet" href="/themes/light.css?v=20260730.13" />
+    <link rel="stylesheet" href="/themes/dark.css?v=20260730.13" />
+    <script type="module" src="/scripts/main.js?v=20260730.13"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -21,7 +21,7 @@
           <span class="status-pill" id="model-status"><i></i><span></span></span>
           <button class="icon-button" id="settings-button" type="button" aria-label=""></button>
           <button class="icon-button" id="theme-toggle" type="button" aria-label=""></button>
-          <a class="text-button header-about" id="repo-link" target="_blank" rel="noreferrer"></a>
+          <a class="icon-button header-about" id="repo-link" target="_blank" rel="noreferrer"></a>
         </div>
       </header>
 
@@ -48,7 +48,6 @@
               <button class="text-button action-button" id="share-button" type="button"></button>
             </div>
           </div>
-          <p class="section-description" data-i18n="composer.description"></p>
           <div class="canvas" id="composer-canvas">
             <div class="empty-state" id="empty-state">
               <div class="empty-illustration" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -97,14 +96,23 @@
           <section class="settings-section" data-settings-section="blocks" hidden>
             <h2 data-i18n="settings.blocks"></h2><p data-i18n="settings.blocksDescription"></p>
             <div class="block-settings-grid">
-              <div class="settings-column"><strong data-i18n="settings.categoryLabel"></strong><div class="settings-list" id="settings-categories"></div></div>
-              <div class="settings-column"><strong data-i18n="settings.blockLabel"></strong><div class="settings-list" id="settings-blocks"></div></div>
+              <div class="settings-column">
+                <div class="settings-column-heading"><strong data-i18n="settings.categoryLabel"></strong><button class="settings-add-button" id="settings-add-category" type="button"><span data-i18n="settings.addCategory"></span></button></div>
+                <div class="settings-list" id="settings-categories"></div>
+              </div>
+              <div class="settings-column">
+                <div class="settings-column-heading"><strong data-i18n="settings.blockLabel"></strong><button class="settings-add-button" id="settings-add-block" type="button"><span data-i18n="settings.addBlock"></span></button></div>
+                <div class="settings-list" id="settings-blocks"></div>
+              </div>
               <form class="block-form" id="block-form">
-                <strong data-i18n="settings.editorLabel"></strong>
-                <div class="form-empty" id="block-form-empty" data-i18n="settings.chooseBlock"></div>
-                <div id="block-form-fields" hidden>
+                <div class="settings-column-heading"><strong id="settings-editor-title"></strong><span class="settings-delete-actions"><button class="settings-delete-button" id="settings-delete-block" type="button"><span data-i18n="settings.deleteBlock"></span></button><button class="settings-delete-button" id="settings-delete-category" type="button"><span data-i18n="settings.deleteCategory"></span></button></span></div>
+                <div class="form-empty" id="block-form-empty" data-i18n="settings.chooseCategory"></div>
+                <div class="settings-form-fields" id="settings-category-fields" hidden>
                   <label class="field"><span data-i18n="settings.categoryName"></span><input name="categoryName" maxlength="80" required /></label>
                   <label class="field"><span data-i18n="settings.categoryDescription"></span><textarea name="categoryDescription" maxlength="240" required></textarea></label>
+                  <label class="field field-color"><span data-i18n="settings.categoryColor"></span><input name="categoryColor" type="color" required /></label>
+                </div>
+                <div class="settings-form-fields" id="settings-block-fields" hidden>
                   <div class="field-row"><label class="field"><span data-i18n="settings.name"></span><input name="name" maxlength="120" required /></label><label class="field compact"><span data-i18n="settings.icon"></span><input name="icon" maxlength="8" required /></label></div>
                   <label class="field"><span data-i18n="settings.summary"></span><input name="summary" maxlength="300" required /></label>
                   <label class="field"><span data-i18n="settings.type"></span><span class="select-shell"><select name="type"></select><i aria-hidden="true"></i></span></label>

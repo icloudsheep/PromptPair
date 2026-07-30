@@ -1,4 +1,4 @@
-import { escapeHtml, interpolate } from "../utils/dom.js";
+import { escapeHtml, interpolate } from "../utils/dom.js?v=20260730.2";
 
 export function initializeLibrary({ categories, messages, store, onAdd }) {
   const tabs = document.querySelector("#category-tabs");
@@ -49,15 +49,12 @@ export function initializeLibrary({ categories, messages, store, onAdd }) {
         <h2 class="library-group-title" style="--block-color:${category.color}"><i></i>${escapeHtml(category.name)}</h2>
         ${category.blocks.map((block) => `
           <button class="library-card type-${escapeHtml(block.type)}" type="button" draggable="true" data-category="${escapeHtml(category.id)}" data-block="${escapeHtml(block.id)}" style="--block-color:${category.color}" aria-label="${escapeHtml(interpolate(messages.library.addBlock, { name: block.name }))}">
-            <span class="card-layer card-layer-back" aria-hidden="true"></span>
-            <span class="card-layer card-layer-middle" aria-hidden="true"></span>
             <span class="card-icon">${escapeHtml(block.icon)}</span>
             <span class="card-copy">
               <span class="card-meta">${escapeHtml(messages.types[block.type] || block.type)}</span>
               <strong>${escapeHtml(block.name)}</strong>
               <span>${escapeHtml(block.summary)}</span>
             </span>
-            <span class="card-emphasis-state" aria-hidden="true">${escapeHtml(messages.library.emphasized)}</span>
           </button>
         `).join("")}
       </section>
@@ -69,15 +66,14 @@ export function initializeLibrary({ categories, messages, store, onAdd }) {
     usage = new Map();
     blocks.forEach((block) => {
       const key = `${block.categoryId}:${block.sourceId}`;
-      usage.set(key, (usage.get(key) || 0) + 1);
+      usage.set(key, block.emphasized ? 2 : 1);
     });
     list.querySelectorAll(".library-card").forEach((card) => {
       const count = usage.get(`${card.dataset.category}:${card.dataset.block}`) || 0;
       const emphasized = count === 2;
       card.disabled = emphasized;
       card.draggable = !emphasized;
-      card.classList.toggle("is-emphasized", emphasized);
-      card.classList.toggle("has-one-left", count === 1);
+      card.classList.toggle("is-depleted", emphasized);
       const block = resolve(card.dataset.category, card.dataset.block);
       card.ariaLabel = emphasized
         ? interpolate(messages.library.limitLabel, { name: block?.name || "" })

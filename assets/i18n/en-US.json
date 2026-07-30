@@ -6,13 +6,13 @@
     "eyebrow": "Block Library", "title": "Prompt blocks", "searchPlaceholder": "Search names or descriptions...",
     "searchShortcut": "/", "categoryLabel": "Prompt categories", "allCategories": "All",
     "noResults": "No matching blocks. Change the search or category.", "addBlock": "Add {name}",
-    "emphasized": "Emphasized", "limitReached": "A block can be used twice at most; both copies are now emphasized", "limitLabel": "{name} is used twice and emphasized"
+    "limitReached": "This block is already emphasized and cannot be added again", "limitLabel": "{name} is emphasized"
   },
   "composer": {
     "eyebrow": "Composition Canvas", "title": "Prompt composer",
-    "description": "Roles merge into one outer identity. Other blocks run in order inside that role.",
+    "description": "Roles merge into one outer identity while other blocks execute in order inside it.", "roleCount": "{count} role perspectives",
     "emptyTitle": "Start with a block", "emptyDescription": "Click a block on the left or drag it here. Categories can be freely combined.",
-    "roleFrame": "Merged role", "roleCount": "{count} role perspectives", "roleEmpty": "No role selected. Requirements will use a general assistant identity.",
+    "roleEmpty": "No role selected. Requirements will use a general assistant identity.",
     "requirements": "Role requirements", "requirementsEmpty": "Add instructions, context, constraints, or quality blocks.",
     "contentLabel": "Prompt content for {name}", "moveUp": "Move {name} up", "moveDown": "Move {name} down",
     "remove": "Remove {name}", "dropLabel": "Drop Prompt blocks here", "emphasis": "Emphasized"
@@ -39,9 +39,13 @@
     "eyebrow": "Workspace Settings", "title": "Settings", "close": "Close settings", "general": "General", "blocks": "Blocks",
     "language": "Interface language", "languageDescription": "All interface text refreshes immediately after saving.",
     "blocksDescription": "Select a category and block to edit. Changes are saved to JSON and applied live.",
-    "categoryLabel": "Category", "blockLabel": "Block", "editorLabel": "Block editor", "categoryName": "Category name", "categoryDescription": "Category description",
+    "categoryLabel": "Category", "blockLabel": "Block", "editorLabel": "Block editor", "categoryEditorLabel": "Category editor", "blockEditorLabel": "Block editor", "categoryName": "Category name", "categoryDescription": "Category description", "categoryColor": "Category theme color",
+    "addCategory": "Add category", "deleteCategory": "Delete category", "addBlock": "Add block", "deleteBlock": "Delete block",
     "name": "Name", "summary": "Summary", "icon": "Icon text", "type": "Block type", "prompt": "Prompt content",
-    "saving": "Saving...", "saved": "Saved", "saveFailed": "Save failed: {message}", "chooseBlock": "Choose a block to start editing."
+    "saving": "Saving...", "saved": "Saved", "saveFailed": "Save failed: {message}", "chooseBlock": "Choose a block to start editing.",
+    "chooseCategory": "Add or choose a category to start editing.", "newCategoryName": "New category", "newCategoryDescription": "Describe what this category is for",
+    "newBlockName": "New block", "newBlockSummary": "Describe when this block should be used", "newBlockIcon": "NEW", "newBlockPrompt": "Write the Prompt content here.",
+    "confirmDeleteCategory": "Delete category “{name}” and its {count} blocks? This immediately updates the JSON files.", "confirmDeleteBlock": "Delete block “{name}”? This immediately updates the JSON file."
   },
   "errors": { "loadFailed": "Configuration failed to load. Check the resource files and refresh.", "invalidRecipe": "The recipe code is invalid", "clipboardFailed": "Clipboard access failed; copy it manually" }
 }

@@ -1,4 +1,4 @@
-import { icon } from "../utils/dom.js";
+import { icon } from "../utils/dom.js?v=20260730.2";
 
 export function initializeTheme(defaultTheme, messages) {
   const button = document.querySelector("#theme-toggle");

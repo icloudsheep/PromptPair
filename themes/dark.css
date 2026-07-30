@@ -28,7 +28,7 @@
   --block-control-hover: #1f3024;
   --block-control-disabled: #667369;
   --block-control-disabled-text: #cbd3cc;
-  --role-shell: #8f6abb;
+  --role-shell: #493a5b;
   --role-dark: #73509e;
   --role-darkest: #593b7d;
   --role-on: #ffffff;
@@ -36,4 +36,10 @@
   --block-blue: #5e91b8;
   --block-green: #5f9a76;
   --block-orange: #c18454;
+}
+
+:root[data-theme="dark"] .block-editor textarea,
+:root[data-theme="dark"] .block-editor textarea:focus,
+:root[data-theme="dark"] .role-blocks .block-editor textarea {
+  background: #000000;
 }

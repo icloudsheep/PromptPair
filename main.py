@@ -6,6 +6,7 @@ import mimetypes
 import os
 import re
 import tempfile
+import threading
 import urllib.error
 import urllib.request
 from http import HTTPStatus
@@ -19,8 +20,11 @@ APP_CONFIG = ROOT / "assets/config/app.json"
 PROMPT_MANIFEST = ROOT / "assets/prompts/manifest.json"
 MAX_BODY_SIZE = 512_000
 MAX_BLOCKS = 50
+MAX_CATEGORIES = 50
 BLOCK_TYPES = {"role", "instruction", "context", "constraint", "quality"}
 SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+SAFE_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
+SETTINGS_WRITE_LOCK = threading.RLock()
 
 
 def load_env(path: Path) -> None:
@@ -169,8 +173,8 @@ def validate_category(payload: Any, expected_id: str) -> dict[str, Any]:
     if not isinstance(payload, dict) or payload.get("id") != expected_id:
         raise ValueError("分类 ID 不匹配")
     blocks = payload.get("blocks")
-    if not isinstance(blocks, list) or not blocks or len(blocks) > MAX_BLOCKS:
-        raise ValueError(f"每个分类需要 1 到 {MAX_BLOCKS} 个积木")
+    if not isinstance(blocks, list) or len(blocks) > MAX_BLOCKS:
+        raise ValueError(f"每个分类需要 0 到 {MAX_BLOCKS} 个积木")
     seen: set[str] = set()
     normalized = []
     for block in blocks:
@@ -201,7 +205,94 @@ def validate_category(payload: Any, expected_id: str) -> dict[str, Any]:
     }
 
 
-def build_compiler_request(payload: dict[str, Any]) -> list[dict[str, str]]:
+def validate_color(value: Any) -> str:
+    color = clean_text(value, "分类颜色", 7)
+    if not SAFE_COLOR.fullmatch(color):
+        raise ValueError("分类颜色必须是 #RRGGBB 格式")
+    return color.lower()
+
+
+def create_prompt_category(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("请求格式无效")
+    category_id = clean_text(payload.get("id"), "分类 ID", 64)
+    if not SAFE_ID.fullmatch(category_id):
+        raise ValueError("分类 ID 只能包含小写字母、数字和连字符")
+    manifest = read_json(PROMPT_MANIFEST)
+    entries = manifest.get("categories")
+    if not isinstance(entries, list):
+        raise ValueError("Prompt 清单格式无效")
+    if len(entries) >= MAX_CATEGORIES:
+        raise ValueError(f"分类不能超过 {MAX_CATEGORIES} 个")
+    files = prompt_files()
+    category_path = (PROMPT_MANIFEST.parent / f"{category_id}.json").resolve()
+    if category_id in files or category_path.exists():
+        raise ValueError("分类 ID 已存在")
+    category = validate_category(payload, category_id)
+    color = validate_color(payload.get("color"))
+    entry = {
+        "id": category_id,
+        "file": f"/assets/prompts/{category_id}.json",
+        "color": color,
+    }
+    write_json_atomic(category_path, category)
+    try:
+        manifest["categories"] = [*entries, entry]
+        write_json_atomic(PROMPT_MANIFEST, manifest)
+    except OSError:
+        category_path.unlink(missing_ok=True)
+        raise
+    return {**category, "color": color}
+
+
+def update_prompt_category(category_id: str, payload: Any) -> dict[str, Any]:
+    category = validate_category(payload, category_id)
+    color = validate_color(payload.get("color"))
+    manifest = read_json(PROMPT_MANIFEST)
+    entries = manifest.get("categories")
+    if not isinstance(entries, list):
+        raise ValueError("Prompt 清单格式无效")
+    files = prompt_files()
+    category_path = files.get(category_id)
+    if category_path is None:
+        raise FileNotFoundError("分类不存在")
+    entry_index = next((index for index, entry in enumerate(entries) if entry.get("id") == category_id), None)
+    if entry_index is None:
+        raise FileNotFoundError("分类不存在")
+    previous_category = read_json(category_path)
+    updated_entries = [dict(entry) for entry in entries]
+    updated_entries[entry_index]["color"] = color
+    updated_manifest = {**manifest, "categories": updated_entries}
+    write_json_atomic(category_path, category)
+    try:
+        write_json_atomic(PROMPT_MANIFEST, updated_manifest)
+    except OSError:
+        write_json_atomic(category_path, previous_category)
+        raise
+    return {**category, "color": color}
+
+
+def delete_prompt_category(category_id: str) -> None:
+    if not SAFE_ID.fullmatch(category_id):
+        raise ValueError("分类 ID 无效")
+    manifest = read_json(PROMPT_MANIFEST)
+    entries = manifest.get("categories")
+    if not isinstance(entries, list):
+        raise ValueError("Prompt 清单格式无效")
+    category_path = prompt_files().get(category_id)
+    if category_path is None:
+        raise FileNotFoundError("分类不存在")
+    manifest["categories"] = [entry for entry in entries if entry.get("id") != category_id]
+    write_json_atomic(PROMPT_MANIFEST, manifest)
+    try:
+        category_path.unlink()
+    except OSError:
+        manifest["categories"] = entries
+        write_json_atomic(PROMPT_MANIFEST, manifest)
+        raise
+
+
+def build_compiler_request(payload: dict[str, Any]) -> list[dict[str, Any]]:
     if not isinstance(payload, dict):
         raise ValueError("请求格式无效")
     blocks = payload.get("blocks")
@@ -225,17 +316,26 @@ def build_compiler_request(payload: dict[str, Any]) -> list[dict[str, str]]:
             raise ValueError(f"第 {index} 个积木没有内容")
         if not source or len(source) > 129 or ":" not in source:
             raise ValueError(f"第 {index} 个积木来源无效")
-        source_counts[source] = source_counts.get(source, 0) + 1
-        if source_counts[source] > 2:
-            raise ValueError("同一个 Prompt 积木最多只能使用两次")
+        if source in source_counts:
+            raise ValueError("同一个 Prompt 积木只能占用一个工作台位置")
+        emphasized = block.get("emphasized", False)
+        if not isinstance(emphasized, bool):
+            raise ValueError(f"第 {index} 个积木的强调状态无效")
+        source_counts[source] = 1
         normalized_blocks.append(
-            {"order": index, "type": block_type, "title": title, "content": content, "source": source}
+            {
+                "order": index,
+                "type": block_type,
+                "title": title,
+                "content": content,
+                "source": source,
+                "emphasized": emphasized,
+            }
         )
 
     roles = []
     requirements = []
     for normalized in normalized_blocks:
-        normalized["emphasized"] = source_counts[normalized["source"]] == 2
         (roles if normalized["type"] == "role" else requirements).append(normalized)
 
     system_prompt = (
@@ -263,6 +363,7 @@ class PromptPairHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("X-Frame-Options", "DENY")
@@ -308,12 +409,14 @@ class PromptPairHandler(SimpleHTTPRequestHandler):
             prefix = "/api/settings/prompts/"
             if path.startswith(prefix):
                 category_id = path[len(prefix):]
-                files = prompt_files()
-                if category_id not in files:
+                if not SAFE_ID.fullmatch(category_id):
+                    raise ValueError("分类 ID 无效")
+                try:
+                    with SETTINGS_WRITE_LOCK:
+                        category = update_prompt_category(category_id, payload)
+                except FileNotFoundError:
                     self.send_json(HTTPStatus.NOT_FOUND, {"error": "分类不存在"})
                     return
-                category = validate_category(payload, category_id)
-                write_json_atomic(files[category_id], category)
                 self.send_json(HTTPStatus.OK, {"category": category})
                 return
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "接口不存在"})
@@ -323,7 +426,19 @@ class PromptPairHandler(SimpleHTTPRequestHandler):
             self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "配置写入失败"})
 
     def do_POST(self) -> None:
-        if urlparse(self.path).path != "/api/generate":
+        path = urlparse(self.path).path
+        if path == "/api/settings/prompts":
+            try:
+                payload = self.read_payload()
+                with SETTINGS_WRITE_LOCK:
+                    category = create_prompt_category(payload)
+                self.send_json(HTTPStatus.CREATED, {"category": category})
+            except (json.JSONDecodeError, ValueError) as error:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            except OSError:
+                self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "配置写入失败"})
+            return
+        if path != "/api/generate":
             self.send_json(HTTPStatus.NOT_FOUND, {"error": "接口不存在"})
             return
         try:
@@ -336,6 +451,23 @@ class PromptPairHandler(SimpleHTTPRequestHandler):
             self.send_json(HTTPStatus.BAD_GATEWAY, {"error": str(error)})
         except Exception:
             self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "生成服务发生未知错误"})
+
+    def do_DELETE(self) -> None:
+        path = urlparse(self.path).path
+        prefix = "/api/settings/prompts/"
+        if not path.startswith(prefix):
+            self.send_json(HTTPStatus.NOT_FOUND, {"error": "接口不存在"})
+            return
+        try:
+            with SETTINGS_WRITE_LOCK:
+                delete_prompt_category(path[len(prefix):])
+            self.send_json(HTTPStatus.OK, {"deleted": True})
+        except FileNotFoundError as error:
+            self.send_json(HTTPStatus.NOT_FOUND, {"error": str(error)})
+        except ValueError as error:
+            self.send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+        except OSError:
+            self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "配置写入失败"})
 
     def read_payload(self) -> dict[str, Any]:
         try:
@@ -424,7 +556,7 @@ class PromptPairHandler(SimpleHTTPRequestHandler):
 def main() -> None:
     parser = argparse.ArgumentParser(description="PromptPair local server")
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--port", type=int, default=8001)
     args = parser.parse_args()
     load_env(ROOT / ".env")
     mimetypes.add_type("text/javascript", ".js")

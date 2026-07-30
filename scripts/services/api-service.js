@@ -30,20 +30,15 @@ export async function consumeNdjsonStream(stream, onEvent) {
 }
 
 export async function generatePrompt(blocks, { onDelta } = {}) {
-  const counts = new Map();
-  blocks.forEach((block) => {
-    const key = `${block.categoryId}:${block.sourceId}`;
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
   const response = await fetch("/api/generate", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      blocks: blocks.map(({ name, type, content, categoryId, sourceId }) => ({
+      blocks: blocks.map(({ name, type, content, categoryId, sourceId, emphasized }) => ({
         title: name,
         type,
         content,
         source: `${categoryId}:${sourceId}`,
-        emphasized: counts.get(`${categoryId}:${sourceId}`) === 2
+        emphasized: Boolean(emphasized)
       }))
     })
   });

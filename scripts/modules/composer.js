@@ -1,4 +1,4 @@
-import { escapeHtml, icon, interpolate } from "../utils/dom.js";
+import { escapeHtml, icon, interpolate } from "../utils/dom.js?v=20260730.3";
 
 const MOTION = { duration: 360, easing: "cubic-bezier(.22, 1, .36, 1)" };
 
@@ -8,20 +8,21 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
   const empty = document.querySelector("#empty-state");
   const elements = new Map();
   let draggedId = null;
+  let dragCommitted = false;
   let suppressReconcile = false;
   let renderedBlocks = null;
+  let shellResizeAnimation = null;
+  let slotTransitionFrame = null;
 
   stack.innerHTML = `
     <section class="role-container">
-      <header class="role-container-heading">
-        <strong></strong>
-      </header>
       <div class="role-blocks"></div>
       <p class="role-placeholder">${escapeHtml(messages.composer.roleEmpty)}</p>
       <div class="role-inner is-empty">
         <p class="requirements-placeholder">${escapeHtml(messages.composer.requirementsEmpty)}</p>
         <div class="requirement-blocks"></div>
       </div>
+      <div class="role-slot" aria-hidden="true"></div>
     </section>
   `;
   const roleContainer = stack.querySelector(".role-container");
@@ -29,8 +30,8 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
   const requirementBlocks = stack.querySelector(".requirement-blocks");
   const rolePlaceholder = stack.querySelector(".role-placeholder");
   const requirementsPlaceholder = stack.querySelector(".requirements-placeholder");
-  const roleCount = stack.querySelector(".role-container-heading strong");
   const roleInner = stack.querySelector(".role-inner");
+  const roleSlot = stack.querySelector(".role-slot");
 
   const updateEstimate = (blocks) => {
     const characters = blocks.reduce((sum, block) => sum + block.content.length, 0);
@@ -48,12 +49,8 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
           <span class="drag-handle" aria-hidden="true">⠿</span>
           <span class="block-order"></span>
           <strong class="block-title"></strong>
-          <span class="block-type"></span>
-          <span class="block-category"></span>
           <span class="block-emphasis" hidden></span>
           <span class="block-controls">
-            <button class="block-control" type="button" data-action="up">${icon("arrowUp")}</button>
-            <button class="block-control" type="button" data-action="down">${icon("arrowDown")}</button>
             <button class="block-control" type="button" data-action="remove">${icon("trash")}</button>
           </span>
         </div>
@@ -63,28 +60,49 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     return template.content.firstElementChild;
   };
 
-  const updateBlockElement = (element, block, index, groupIndex, groupLength, occurrenceCount) => {
+  const updateBlockElement = (element, block, index, joinsPrevious, joinsNext) => {
+    const wasEmphasized = element.dataset.emphasized === "true";
+    const wasDragging = element.classList.contains("dragging");
     element.dataset.instance = block.instanceId;
-    element.className = `prompt-block type-${block.type}${element.classList.contains("dragging") ? " dragging" : ""}`;
+    element.dataset.category = block.categoryId;
+    element.className = [
+      "prompt-block",
+      `type-${block.type}`,
+      wasDragging ? "dragging" : "",
+      joinsPrevious ? "joins-previous" : "",
+      joinsNext ? "joins-next" : ""
+    ].filter(Boolean).join(" " );
     element.style.setProperty("--block-color", block.color);
     element.querySelector(".block-order").textContent = String(index + 1).padStart(2, "0");
     element.querySelector(".block-title").textContent = block.name;
-    element.querySelector(".block-type").textContent = messages.types[block.type] || block.type;
-    element.querySelector(".block-category").textContent = block.categoryName;
     const emphasis = element.querySelector(".block-emphasis");
-    emphasis.hidden = occurrenceCount !== 2;
+    emphasis.hidden = !block.emphasized;
     emphasis.textContent = messages.composer.emphasis;
-    element.classList.toggle("is-emphasized", occurrenceCount === 2);
+    element.classList.toggle("is-emphasized", Boolean(block.emphasized));
+    element.dataset.emphasized = String(Boolean(block.emphasized));
+    if (!wasEmphasized && block.emphasized) {
+      element.animate(
+        [
+          { transform: "scale(1)", filter: "saturate(1)", boxShadow: `0 0 0 0 ${block.color}` },
+          { transform: "scale(1.012)", filter: "saturate(1.18)", boxShadow: `0 0 0 7px ${block.color}55`, offset: .48 },
+          { transform: "scale(1)", filter: "saturate(1)", boxShadow: `0 0 0 12px ${block.color}00` }
+        ],
+        { duration: 760, easing: "cubic-bezier(.16, 1, .3, 1)" }
+      );
+      emphasis.animate(
+        [
+          { opacity: 0, transform: "translateY(4px) scale(.55)", filter: "blur(3px)" },
+          { opacity: 1, transform: "translateY(0) scale(1.16)", filter: "blur(0)", offset: .52 },
+          { opacity: 1, transform: "translateY(0) scale(.96)", filter: "blur(0)", offset: .72 },
+          { opacity: 1, transform: "translateY(0) scale(1)", filter: "blur(0)" }
+        ],
+        { duration: 760, easing: "cubic-bezier(.16, 1, .3, 1)" }
+      );
+    }
     const textarea = element.querySelector("textarea");
     textarea.ariaLabel = interpolate(messages.composer.contentLabel, { name: block.name });
     if (document.activeElement !== textarea && textarea.value !== block.content) textarea.value = block.content;
-    const up = element.querySelector('[data-action="up"]');
-    const down = element.querySelector('[data-action="down"]');
     const remove = element.querySelector('[data-action="remove"]');
-    up.disabled = groupIndex === 0;
-    down.disabled = groupIndex === groupLength - 1;
-    up.ariaLabel = interpolate(messages.composer.moveUp, { name: block.name });
-    down.ariaLabel = interpolate(messages.composer.moveDown, { name: block.name });
     remove.ariaLabel = interpolate(messages.composer.remove, { name: block.name });
   };
 
@@ -92,6 +110,28 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     if (suppressReconcile || state.blocks === renderedBlocks) return;
     renderedBlocks = state.blocks;
     const oldShellHeight = roleContainer.getBoundingClientRect().height;
+    const oldSlotStyle = getComputedStyle(roleSlot);
+    const oldSlotState = {
+      height: oldSlotStyle.height,
+      marginTop: oldSlotStyle.marginTop,
+      opacity: oldSlotStyle.opacity,
+      transform: oldSlotStyle.transform
+    };
+    const wasSlotVisible = roleSlot.classList.contains("is-visible");
+    shellResizeAnimation?.cancel();
+    shellResizeAnimation = null;
+    if (slotTransitionFrame !== null) {
+      window.cancelAnimationFrame(slotTransitionFrame);
+      slotTransitionFrame = null;
+    }
+    roleSlot.getAnimations().forEach((animation) => animation.cancel());
+    roleSlot.style.transition = "none";
+    roleSlot.style.removeProperty("height");
+    roleSlot.style.removeProperty("margin-top");
+    roleSlot.style.removeProperty("opacity");
+    roleSlot.style.removeProperty("transform");
+    roleContainer.style.removeProperty("height");
+    roleContainer.classList.remove("resizing");
     const oldPositions = new Map([...elements].map(([id, element]) => [id, element.getBoundingClientRect()]));
     const roles = state.blocks.filter((block) => block.type === "role");
     const requirements = state.blocks.filter((block) => block.type !== "role");
@@ -124,11 +164,6 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     }
 
     const newElements = [];
-    const occurrenceCounts = new Map();
-    state.blocks.forEach((block) => {
-      const key = `${block.categoryId}:${block.sourceId}`;
-      occurrenceCounts.set(key, (occurrenceCounts.get(key) || 0) + 1);
-    });
     const placeGroup = (container, blocks, group) => {
       blocks.forEach((block, groupIndex) => {
         let element = elements.get(block.instanceId);
@@ -137,13 +172,16 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
           element = createBlockElement();
           elements.set(block.instanceId, element);
         }
+        const joinsPrevious = group === "requirement"
+          && blocks[groupIndex - 1]?.categoryId === block.categoryId;
+        const joinsNext = group === "requirement"
+          && blocks[groupIndex + 1]?.categoryId === block.categoryId;
         updateBlockElement(
           element,
           block,
           state.blocks.indexOf(block),
-          groupIndex,
-          blocks.length,
-          occurrenceCounts.get(`${block.categoryId}:${block.sourceId}`)
+          joinsPrevious,
+          joinsNext
         );
         container.append(element);
         if (isNew) newElements.push(element);
@@ -174,55 +212,112 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     }
     empty.hidden = state.blocks.length > 0;
     stack.hidden = state.blocks.length === 0;
+    canvas.classList.toggle("has-blocks", state.blocks.length > 0);
     roleContainer.classList.toggle("has-roles", roles.length > 0);
     roleInner.classList.toggle("is-empty", requirements.length === 0);
+    const isSlotVisible = roles.length > 0 && requirements.length === 0;
+    roleSlot.classList.toggle("is-visible", isSlotVisible);
     rolePlaceholder.hidden = roles.length > 0;
     requirementsPlaceholder.hidden = requirements.length > 0;
-    roleCount.textContent = interpolate(messages.composer.roleCount, { count: roles.length });
     document.querySelector("#clear-button").disabled = state.blocks.length === 0;
     document.querySelector("#share-button").disabled = state.blocks.length === 0;
     updateEstimate(state.blocks);
 
     const newShellHeight = roleContainer.getBoundingClientRect().height;
+    if (wasSlotVisible !== isSlotVisible) {
+      roleSlot.style.height = oldSlotState.height;
+      roleSlot.style.marginTop = oldSlotState.marginTop;
+      roleSlot.style.opacity = oldSlotState.opacity;
+      roleSlot.style.transform = oldSlotState.transform;
+      roleSlot.getBoundingClientRect();
+      roleSlot.style.removeProperty("transition");
+      slotTransitionFrame = window.requestAnimationFrame(() => {
+        slotTransitionFrame = null;
+        roleSlot.style.removeProperty("height");
+        roleSlot.style.removeProperty("margin-top");
+        roleSlot.style.removeProperty("opacity");
+        roleSlot.style.removeProperty("transform");
+      });
+    } else {
+      roleSlot.style.removeProperty("transition");
+    }
     if (oldShellHeight > 0 && Math.abs(oldShellHeight - newShellHeight) > 1) {
       roleContainer.classList.add("resizing");
-      const animation = roleContainer.animate(
+      roleContainer.style.height = `${oldShellHeight}px`;
+      shellResizeAnimation = roleContainer.animate(
         [{ height: `${oldShellHeight}px` }, { height: `${newShellHeight}px` }],
         MOTION
       );
-      animation.finished.catch(() => {}).finally(() => roleContainer.classList.remove("resizing"));
+      const currentAnimation = shellResizeAnimation;
+      currentAnimation.finished.catch(() => {}).finally(() => {
+        if (shellResizeAnimation !== currentAnimation) return;
+        shellResizeAnimation = null;
+        roleContainer.style.removeProperty("height");
+        roleContainer.classList.remove("resizing");
+      });
     }
   };
 
-  const move = (instanceId, direction) => {
-    store.setState((state) => {
-      const from = state.blocks.findIndex((block) => block.instanceId === instanceId);
-      if (from < 0) return state;
-      const roleGroup = state.blocks[from].type === "role";
-      const eligible = state.blocks.map((block, index) => ({ block, index })).filter(({ block }) => (block.type === "role") === roleGroup);
-      const groupIndex = eligible.findIndex(({ index }) => index === from);
-      const target = eligible[groupIndex + direction];
-      if (!target) return state;
-      const blocks = [...state.blocks];
-      [blocks[from], blocks[target.index]] = [blocks[target.index], blocks[from]];
-      return { blocks };
+  const groupOrderFromDom = (container) => [...container.querySelectorAll(":scope > .prompt-block")]
+    .map((element) => element.dataset.instance);
+
+  const applyGroupOrder = (blocks, groupOrder, roleGroup) => {
+    const byId = new Map(blocks.map((block) => [block.instanceId, block]));
+    let groupIndex = 0;
+    return blocks.map((block) => {
+      if ((block.type === "role") !== roleGroup) return block;
+      return byId.get(groupOrder[groupIndex++]) || block;
     });
+  };
+
+  const updateDragPreview = (container) => {
+    const state = store.getState();
+    const roleOrder = groupOrderFromDom(roleBlocks);
+    const requirementOrder = groupOrderFromDom(requirementBlocks);
+    const previewBlocks = applyGroupOrder(
+      applyGroupOrder(state.blocks, roleOrder, true),
+      requirementOrder,
+      false
+    );
+    const visibleOrder = [...roleOrder, ...requirementOrder];
+    visibleOrder.forEach((instanceId, index) => {
+      elements.get(instanceId)?.querySelector(".block-order")?.replaceChildren(String(index + 1).padStart(2, "0"));
+    });
+    if (container === requirementBlocks) {
+      const previewRequirements = previewBlocks.filter((block) => block.type !== "role");
+      previewRequirements.forEach((block, index) => {
+        const element = elements.get(block.instanceId);
+        element?.classList.toggle("joins-previous", previewRequirements[index - 1]?.categoryId === block.categoryId);
+        element?.classList.toggle("joins-next", previewRequirements[index + 1]?.categoryId === block.categoryId);
+      });
+    }
+  };
+
+  const restoreRenderedOrder = () => {
+    renderedBlocks = null;
+    reconcile(store.getState());
   };
 
   const addBlock = (block) => {
     const sourceKey = `${block.categoryId}:${block.id}`;
-    const occurrenceCount = store.getState().blocks.filter(
+    const existing = store.getState().blocks.find(
       (item) => `${item.categoryId}:${item.sourceId}` === sourceKey
-    ).length;
-    if (occurrenceCount >= 2) {
+    );
+    if (existing?.emphasized) {
       onLimitReached?.(block);
       return false;
     }
-    store.setState((state) => ({ blocks: [...state.blocks, {
-      instanceId: crypto.randomUUID(), sourceId: block.id, name: block.name, type: block.type,
-      categoryId: block.categoryId, categoryName: block.categoryName, color: block.color,
-      sourcePrompt: block.prompt, content: block.prompt
-    }] }));
+    store.setState((state) => {
+      const current = state.blocks.find((item) => `${item.categoryId}:${item.sourceId}` === sourceKey);
+      if (current) {
+        return { blocks: state.blocks.map((item) => item.instanceId === current.instanceId ? { ...item, emphasized: true } : item) };
+      }
+      return { blocks: [...state.blocks, {
+        instanceId: crypto.randomUUID(), sourceId: block.id, name: block.name, type: block.type,
+        categoryId: block.categoryId, categoryName: block.categoryName, color: block.color,
+        sourcePrompt: block.prompt, content: block.prompt, emphasized: false
+      }] };
+    });
     window.requestAnimationFrame(() => canvas.scrollTo({ top: canvas.scrollHeight, behavior: "smooth" }));
     return true;
   };
@@ -244,8 +339,6 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     const article = event.target.closest(".prompt-block");
     if (!control || !article || control.dataset.action === "edit") return;
     const instanceId = article.dataset.instance;
-    if (control.dataset.action === "up") move(instanceId, -1);
-    if (control.dataset.action === "down") move(instanceId, 1);
     if (control.dataset.action === "remove") store.setState((state) => ({ blocks: state.blocks.filter((block) => block.instanceId !== instanceId) }));
   });
   stack.addEventListener("input", (event) => {
@@ -261,26 +354,54 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     const article = event.target.closest(".prompt-block");
     if (!article) return;
     draggedId = article.dataset.instance;
+    dragCommitted = false;
     article.classList.add("dragging");
     event.dataTransfer.effectAllowed = "move";
   });
-  stack.addEventListener("dragend", (event) => { event.target.closest(".prompt-block")?.classList.remove("dragging"); draggedId = null; });
-  stack.addEventListener("dragover", (event) => { if (draggedId !== null && event.target.closest(".prompt-block")) event.preventDefault(); });
-  stack.addEventListener("drop", (event) => {
+  stack.addEventListener("dragend", (event) => {
+    event.target.closest(".prompt-block")?.classList.remove("dragging");
+    if (!dragCommitted && draggedId) restoreRenderedOrder();
+    draggedId = null;
+    dragCommitted = false;
+  });
+  stack.addEventListener("dragover", (event) => {
+    if (!draggedId) return;
+    const source = elements.get(draggedId);
     const target = event.target.closest(".prompt-block");
-    if (!draggedId || !target || draggedId === target.dataset.instance) return;
+    if (!source || !target || source === target || source.parentElement !== target.parentElement) return;
     event.preventDefault();
-    const state = store.getState();
-    const source = state.blocks.find((block) => block.instanceId === draggedId);
-    const destination = state.blocks.find((block) => block.instanceId === target.dataset.instance);
-    if (!source || !destination || (source.type === "role") !== (destination.type === "role")) return;
+    const container = target.parentElement;
+    const sourceRect = source.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const oldPositions = new Map(
+      [...container.querySelectorAll(":scope > .prompt-block")].map((element) => [element, element.getBoundingClientRect()])
+    );
+    if (event.clientY < targetRect.top + targetRect.height / 2) target.before(source);
+    else target.after(source);
+    if (sourceRect.top === source.getBoundingClientRect().top) return;
+    updateDragPreview(container);
+    for (const [element, oldRect] of oldPositions) {
+      if (element === source) continue;
+      const nextRect = element.getBoundingClientRect();
+      const offset = oldRect.top - nextRect.top;
+      if (Math.abs(offset) > 1) {
+        element.animate(
+          [{ transform: `translateY(${offset}px)` }, { transform: "translateY(0)" }],
+          { duration: 180, easing: MOTION.easing }
+        );
+      }
+    }
+  });
+  stack.addEventListener("drop", (event) => {
+    const sourceElement = draggedId ? elements.get(draggedId) : null;
+    if (!sourceElement) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const roleGroup = sourceElement.parentElement === roleBlocks;
+    const groupOrder = groupOrderFromDom(sourceElement.parentElement);
+    dragCommitted = true;
     store.setState(({ blocks }) => {
-      const next = [...blocks];
-      const from = next.findIndex((block) => block.instanceId === draggedId);
-      const to = next.findIndex((block) => block.instanceId === target.dataset.instance);
-      const [item] = next.splice(from, 1);
-      next.splice(to, 0, item);
-      return { blocks: next };
+      return { blocks: applyGroupOrder(blocks, groupOrder, roleGroup) };
     });
     draggedId = null;
   });

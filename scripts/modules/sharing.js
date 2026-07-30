@@ -1,8 +1,8 @@
 export function serializeRecipe(blocks) {
   const recipe = {
-    version: 1,
-    blocks: blocks.map(({ categoryId, sourceId, content, sourcePrompt }) => {
-      const item = { category: categoryId, block: sourceId };
+    version: 2,
+    blocks: blocks.map(({ categoryId, sourceId, content, sourcePrompt, emphasized }) => {
+      const item = { category: categoryId, block: sourceId, emphasized: Boolean(emphasized) };
       if (content !== sourcePrompt) item.content = content;
       return item;
     })
@@ -12,20 +12,19 @@ export function serializeRecipe(blocks) {
 
 export function parseRecipe(code, resolveBlock) {
   const data = JSON.parse(code.trim());
-  if (data?.version !== 1 || !Array.isArray(data.blocks) || data.blocks.length > 50) {
+  if (data?.version !== 2 || !Array.isArray(data.blocks) || data.blocks.length > 50) {
     throw new Error("Invalid recipe");
   }
   const counts = new Map();
   return data.blocks.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid recipe block");
     const source = resolveBlock(item.category, item.block);
-    if (!source || (item.content !== undefined && typeof item.content !== "string")) {
+    if (!source || (item.content !== undefined && typeof item.content !== "string") || typeof item.emphasized !== "boolean") {
       throw new Error("Invalid recipe block");
     }
     const sourceKey = `${source.categoryId}:${source.id}`;
-    const count = (counts.get(sourceKey) || 0) + 1;
-    if (count > 2) throw new Error("Recipe block limit exceeded");
-    counts.set(sourceKey, count);
+    if (counts.has(sourceKey)) throw new Error("Recipe block limit exceeded");
+    counts.set(sourceKey, 1);
     return {
       instanceId: crypto.randomUUID(),
       sourceId: source.id,
@@ -35,7 +34,8 @@ export function parseRecipe(code, resolveBlock) {
       categoryName: source.categoryName,
       color: source.color,
       sourcePrompt: source.prompt,
-      content: (item.content ?? source.prompt).slice(0, 12000)
+      content: (item.content ?? source.prompt).slice(0, 12000),
+      emphasized: item.emphasized
     };
   });
 }

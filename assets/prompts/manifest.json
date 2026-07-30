@@ -1,10 +1,30 @@
 {
   "version": 2,
   "categories": [
-    { "id": "roles", "file": "/assets/prompts/roles.json", "color": "#9b7ac7" },
-    { "id": "frontend", "file": "/assets/prompts/frontend.json", "color": "#5e91b8" },
-    { "id": "backend", "file": "/assets/prompts/backend.json", "color": "#5f9a76" },
-    { "id": "standards", "file": "/assets/prompts/standards.json", "color": "#c18454" },
-    { "id": "knowledge", "file": "/assets/prompts/knowledge.json", "color": "#b76b73" }
+    {
+      "id": "roles",
+      "file": "/assets/prompts/roles.json",
+      "color": "#9b7ac7"
+    },
+    {
+      "id": "frontend",
+      "file": "/assets/prompts/frontend.json",
+      "color": "#5e91b8"
+    },
+    {
+      "id": "backend",
+      "file": "/assets/prompts/backend.json",
+      "color": "#5f9a76"
+    },
+    {
+      "id": "standards",
+      "file": "/assets/prompts/standards.json",
+      "color": "#c18454"
+    },
+    {
+      "id": "knowledge",
+      "file": "/assets/prompts/knowledge.json",
+      "color": "#b76b73"
+    }
   ]
 }

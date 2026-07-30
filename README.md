@@ -11,7 +11,7 @@ cp .env.example .env
 python3 main.py
 ```
 
-编辑 `.env`，填入模型地址、密钥和模型名称，然后访问 `http://127.0.0.1:8000`。API Key 仅由 Python 服务端读取，不会发送给浏览器。`LLM_API_BASE` 支持 OpenAI 兼容的 `/v1` 基址或完整 `/chat/completions` 地址；以 `/anthropic` 结尾的基址及完整 `/v1/messages` 地址会自动使用 Anthropic 兼容协议。`LLM_MAX_TOKENS` 用于 Anthropic 兼容请求，默认值为 4096。
+编辑 `.env`，填入模型地址、密钥和模型名称，然后访问 `http://127.0.0.1:8001`。API Key 仅由 Python 服务端读取，不会发送给浏览器。`LLM_API_BASE` 支持 OpenAI 兼容的 `/v1` 基址或完整 `/chat/completions` 地址；以 `/anthropic` 结尾的基址及完整 `/v1/messages` 地址会自动使用 Anthropic 兼容协议。`LLM_MAX_TOKENS` 用于 Anthropic 兼容请求，默认值为 4096。
 
 ## 配置结构
 
