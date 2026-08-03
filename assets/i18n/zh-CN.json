@@ -33,7 +33,7 @@
   },
   "sharing": {
     "eyebrow": "Recipe Code", "title": "分享配方",
-    "description": "复制这段配方代码进行分享，或粘贴别人分享的代码并应用。当前页面地址不会改变。",
+    "description": "复制压缩后的配方代码进行分享，或粘贴别人分享的代码并应用。当前页面地址不会改变。",
     "codeLabel": "配方代码", "copy": "复制代码", "apply": "应用配方", "close": "关闭分享配方",
     "copySuccess": "配方代码已复制", "applySuccess": "配方已应用"
   },

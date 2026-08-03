@@ -33,7 +33,7 @@
   },
   "sharing": {
     "eyebrow": "Recipe Code", "title": "Share recipe",
-    "description": "Copy this recipe code to share it, or paste someone else's code and apply it. The page address will not change.",
+    "description": "Copy this compressed recipe code to share it, or paste someone else's code and apply it. The page address will not change.",
     "codeLabel": "Recipe code", "copy": "Copy code", "apply": "Apply recipe", "close": "Close recipe sharing",
     "copySuccess": "Recipe code copied", "applySuccess": "Recipe applied"
   },

@@ -3,9 +3,9 @@ import { loadApplication, withBuiltinBlocks } from "./services/config-service.js
 import { generatePrompt, getModelStatus } from "./services/api-service.js?v=20260730.3";
 import { initializeTheme } from "./modules/theme.js?v=20260730.3";
 import { initializeLibrary } from "./modules/library.js?v=20260730.3";
-import { initializeComposer } from "./modules/composer.js?v=20260730.8";
+import { initializeComposer } from "./modules/composer.js?v=20260803.1";
 import { initializeSettings } from "./modules/settings.js?v=20260730.12";
-import { parseRecipe, serializeRecipe } from "./modules/sharing.js?v=20260730.3";
+import { parseRecipe, serializeRecipe } from "./modules/sharing.js?v=20260803.1";
 import { applyMessages, icon, interpolate, showToast } from "./utils/dom.js?v=20260730.3";
 import { renderMarkdown } from "./utils/markdown.js?v=20260730.3";
 
@@ -141,8 +141,8 @@ async function start() {
       delete recipeDialog.dataset.closing;
     });
   };
-  shareButton.addEventListener("click", () => {
-    recipeCode.value = serializeRecipe(store.getState().blocks);
+  shareButton.addEventListener("click", async () => {
+    recipeCode.value = await serializeRecipe(store.getState().blocks);
     recipeDialog.showModal();
     recipeDialog.querySelector(".recipe-dialog-card").animate(
       [
@@ -155,13 +155,24 @@ async function start() {
   });
   recipeClose.addEventListener("click", closeRecipeDialog);
   recipeDialog.addEventListener("cancel", (event) => { event.preventDefault(); closeRecipeDialog(); });
-  recipeDialog.addEventListener("click", (event) => { if (event.target === recipeDialog) closeRecipeDialog(); });
+  let recipeBackdropPointerDown = false;
+  recipeDialog.addEventListener("pointerdown", (event) => {
+    recipeBackdropPointerDown = event.target === recipeDialog;
+  });
+  recipeDialog.addEventListener("pointerup", (event) => {
+    const shouldClose = recipeBackdropPointerDown && event.target === recipeDialog;
+    recipeBackdropPointerDown = false;
+    if (shouldClose) closeRecipeDialog();
+  });
+  recipeDialog.addEventListener("pointercancel", () => {
+    recipeBackdropPointerDown = false;
+  });
   recipeCopy.addEventListener("click", async () => {
     if (await copyText(recipeCode.value, messages)) showToast(messages.sharing.copySuccess);
   });
-  recipeApply.addEventListener("click", () => {
+  recipeApply.addEventListener("click", async () => {
     try {
-      const blocks = parseRecipe(recipeCode.value, library.resolve);
+      const blocks = await parseRecipe(recipeCode.value, library.resolve);
       store.setState({ blocks, result: "" });
       closeRecipeDialog();
       showToast(messages.sharing.applySuccess);

@@ -279,9 +279,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .select-shell i { width: 10px; height: 10px; position: absolute; right: 16px; top: 50%; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); pointer-events: none; transform: translateY(-70%) rotate(45deg); transition: transform var(--transition), border-color var(--transition); }
 .select-shell:focus-within i { border-color: var(--accent); transform: translateY(-45%) rotate(225deg); }
 
-.recipe-dialog { width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; background: var(--dialog-backdrop); color: var(--text); overflow: visible; }
-.recipe-dialog::backdrop { background: var(--dialog-backdrop); }
-.recipe-dialog-card { max-height: calc(100vh - 32px); overflow: auto; padding: 24px; border: 2px solid var(--border-strong); border-radius: 14px; background: var(--surface); }
+.recipe-dialog { width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; background: transparent; color: var(--text); overflow: visible; }
+.recipe-dialog::backdrop { background: color-mix(in srgb, var(--dialog-backdrop) 48%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.18); backdrop-filter: blur(18px) saturate(1.18); }
+.recipe-dialog-card { max-height: calc(100vh - 32px); overflow: auto; padding: 24px; border: 1px solid color-mix(in srgb, var(--border-strong) 68%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--surface) 76%, transparent); box-shadow: 0 24px 70px color-mix(in srgb, var(--dialog-backdrop) 36%, transparent), inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent); -webkit-backdrop-filter: blur(28px) saturate(1.28); backdrop-filter: blur(28px) saturate(1.28); }
 .recipe-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .recipe-dialog-header h2 { margin: 4px 0 0; font-size: 22px; }
 .recipe-dialog-card > p { margin: 14px 0 20px; color: var(--muted); font-size: 14px; line-height: 1.65; }

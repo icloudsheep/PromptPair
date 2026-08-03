@@ -269,7 +269,6 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     rolePlaceholder.hidden = roles.length > 0;
     requirementsPlaceholder.hidden = requirements.length > 0;
     document.querySelector("#clear-button").disabled = state.blocks.length === 0;
-    document.querySelector("#share-button").disabled = state.blocks.length === 0;
     updateEstimate(state.blocks);
 
     // Measure both shells while they are still at their natural post-reconcile sizes.
