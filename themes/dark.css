@@ -40,6 +40,7 @@
 
 :root[data-theme="dark"] .block-editor textarea,
 :root[data-theme="dark"] .block-editor textarea:focus,
-:root[data-theme="dark"] .role-blocks .block-editor textarea {
+:root[data-theme="dark"] .role-blocks .block-editor textarea,
+:root[data-theme="dark"] .user-blocks .block-editor textarea {
   background: #000000;
 }

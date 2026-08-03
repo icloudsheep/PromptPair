@@ -21,7 +21,7 @@ PROMPT_MANIFEST = ROOT / "assets/prompts/manifest.json"
 MAX_BODY_SIZE = 512_000
 MAX_BLOCKS = 50
 MAX_CATEGORIES = 50
-BLOCK_TYPES = {"role", "instruction", "context", "constraint", "quality"}
+BLOCK_TYPES = {"user", "role", "instruction", "context", "constraint", "quality"}
 SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 SAFE_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 SETTINGS_WRITE_LOCK = threading.RLock()
@@ -186,6 +186,12 @@ def validate_category(payload: Any, expected_id: str) -> dict[str, Any]:
             raise ValueError("积木 ID 无效或重复")
         if block_type not in BLOCK_TYPES:
             raise ValueError("积木类型无效")
+        if expected_id == "user" and block_type != "user":
+            raise ValueError("用户分类只能包含用户积木")
+        if expected_id == "roles" and block_type != "role":
+            raise ValueError("角色分类只能包含角色积木")
+        if expected_id not in {"user", "roles"} and block_type in {"user", "role"}:
+            raise ValueError("普通分类不能包含用户或角色积木")
         seen.add(block_id)
         normalized.append(
             {
@@ -275,6 +281,8 @@ def update_prompt_category(category_id: str, payload: Any) -> dict[str, Any]:
 def delete_prompt_category(category_id: str) -> None:
     if not SAFE_ID.fullmatch(category_id):
         raise ValueError("分类 ID 无效")
+    if category_id == "user":
+        raise ValueError("用户分类不能删除")
     manifest = read_json(PROMPT_MANIFEST)
     entries = manifest.get("categories")
     if not isinstance(entries, list):
@@ -333,22 +341,39 @@ def build_compiler_request(payload: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
 
+    outer = []
     roles = []
     requirements = []
     for normalized in normalized_blocks:
-        (roles if normalized["type"] == "role" else requirements).append(normalized)
+        if normalized["type"] == "user":
+            if normalized["emphasized"]:
+                raise ValueError("用户积木不能设置为着重强调")
+            outer.append(normalized)
+        elif normalized["type"] == "role":
+            roles.append(normalized)
+        else:
+            requirements.append(normalized)
+    if len(outer) > 1:
+        raise ValueError("每次只能使用一个用户积木")
 
     system_prompt = (
         "你是一名 Prompt 架构师。请将输入融合成一份可直接交给 AI 使用的最终 Prompt。"
+        "outer 是可选的最高层用户任务：它定义最终 Prompt 的目标、语义边界与交付意图，"
+        "所有角色和内部要求都必须服务于 outer；没有 outer 时，保持角色与内部要求的原有融合逻辑。"
         "roles 中的多个身份不是互相替换，而是合并为一个兼具这些视角的复合角色；"
-        "requirements 是被这个复合角色执行的内部要求，并按 order 保留优先顺序。"
+        "requirements 是在 outer 范围内被这个复合角色执行的内部要求，并按 order 保留优先顺序。"
         "当积木的 emphasized 为 true，表示用户重复选择了该要求以进行着重强调，"
         "必须在最终 Prompt 中明确、优先、完整地落实该内容；"
         "保留所有不冲突的约束，消除重复，解决轻微矛盾，使用清晰的 Markdown 层级。"
         "不要解释融合过程，不要添加代码围栏，只输出最终 Prompt。"
     )
     user_prompt = json.dumps(
-        {"task": "融合角色与其内部 Prompt 积木", "roles": roles, "requirements": requirements},
+        {
+            "task": "融合三层 Prompt 积木",
+            "outer": outer[0] if outer else None,
+            "roles": roles,
+            "requirements": requirements,
+        },
         ensure_ascii=False,
         indent=2,
     )

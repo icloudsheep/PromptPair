@@ -2,6 +2,11 @@
   "version": 2,
   "categories": [
     {
+      "id": "user",
+      "file": "/assets/prompts/user.json",
+      "color": "#6e5bd1"
+    },
+    {
       "id": "roles",
       "file": "/assets/prompts/roles.json",
       "color": "#9b7ac7"

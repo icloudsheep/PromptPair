@@ -1,12 +1,14 @@
 {
   "app": { "name": "PromptPair", "tagline": "Composable Prompt Studio", "pageTitle": "PromptPair · Prompt 积木工作台", "about": "关于", "settings": "打开设置" },
   "status": { "connected": "模型已就绪", "notConfigured": "模型未配置", "checking": "检查模型配置" },
-  "types": { "role": "角色", "instruction": "指令", "context": "上下文", "constraint": "约束", "quality": "质量" },
+  "types": { "user": "用户", "role": "角色", "instruction": "指令", "context": "上下文", "constraint": "约束", "quality": "质量" },
+  "builtins": { "customUser": { "name": "用户自定义", "summary": "手动输入最外层任务，包裹并统筹所有其他积木", "icon": "YOU" } },
   "library": {
     "eyebrow": "Block Library", "title": "Prompt 积木库", "searchPlaceholder": "搜索积木名称或说明...",
     "searchShortcut": "/", "categoryLabel": "Prompt 分类", "allCategories": "全部",
     "noResults": "没有找到匹配的积木。可以修改搜索词或切换分类。", "addBlock": "添加 {name}",
-    "limitReached": "该积木已经着重强调，无法再次添加", "limitLabel": "{name} 已着重强调"
+    "limitReached": "该积木已经着重强调，无法再次添加", "limitLabel": "{name} 已着重强调",
+    "userLimitReached": "每次只能使用一个用户积木", "userLimitLabel": "{name} 暂不可用：工作台已有用户积木"
   },
   "composer": {
     "eyebrow": "Composition Canvas", "title": "Prompt 融合工作台",
@@ -20,7 +22,7 @@
   "generate": {
     "readyTitle": "准备融合", "estimate": "约 {tokens} tokens · {blocks} 块", "button": "生成最终 Prompt",
     "generating": "正在融合...", "emptyError": "请先添加至少一个 Prompt 积木",
-    "success": "最终 Prompt 已生成", "failed": "生成失败：{message}"
+    "success": "最终 Prompt 已生成", "failed": "生成失败：{message}", "userContentRequired": "请先填写用户积木的 Prompt 内容"
   },
   "result": {
     "eyebrow": "Generated Output", "title": "最终 Prompt", "placeholder": "融合后的 Prompt 会出现在这里。模型会合并角色视角并保留内部积木的关键约束。",

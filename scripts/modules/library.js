@@ -68,17 +68,24 @@ export function initializeLibrary({ categories, messages, store, onAdd }) {
       const key = `${block.categoryId}:${block.sourceId}`;
       usage.set(key, block.emphasized ? 2 : 1);
     });
+    const hasUser = blocks.some((block) => block.type === "user");
     list.querySelectorAll(".library-card").forEach((card) => {
       const count = usage.get(`${card.dataset.category}:${card.dataset.block}`) || 0;
-      const emphasized = count === 2;
-      card.disabled = emphasized;
-      card.draggable = !emphasized;
-      card.classList.toggle("is-depleted", emphasized);
       const block = resolve(card.dataset.category, card.dataset.block);
-      card.ariaLabel = emphasized
+      const emphasized = count === 2;
+      const unavailableUser = block?.type === "user" && hasUser;
+      const unavailable = emphasized || unavailableUser;
+      card.disabled = unavailable;
+      card.draggable = !unavailable;
+      card.classList.toggle("is-depleted", unavailable);
+      card.ariaLabel = unavailableUser
+        ? interpolate(messages.library.userLimitLabel, { name: block?.name || "" })
+        : emphasized
         ? interpolate(messages.library.limitLabel, { name: block?.name || "" })
         : interpolate(messages.library.addBlock, { name: block?.name || "" });
-      card.dataset.tooltip = emphasized
+      card.dataset.tooltip = unavailableUser
+        ? interpolate(messages.library.userLimitLabel, { name: block?.name || "" })
+        : emphasized
         ? interpolate(messages.library.limitLabel, { name: block?.name || "" })
         : `${block?.name || ""}\n${block?.summary || ""}`;
     });

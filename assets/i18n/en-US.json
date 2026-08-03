@@ -1,12 +1,14 @@
 {
   "app": { "name": "PromptPair", "tagline": "Composable Prompt Studio", "pageTitle": "PromptPair · Prompt Block Studio", "about": "About", "settings": "Open settings" },
   "status": { "connected": "Model ready", "notConfigured": "Model not configured", "checking": "Checking model" },
-  "types": { "role": "Role", "instruction": "Instruction", "context": "Context", "constraint": "Constraint", "quality": "Quality" },
+  "types": { "user": "User", "role": "Role", "instruction": "Instruction", "context": "Context", "constraint": "Constraint", "quality": "Quality" },
+  "builtins": { "customUser": { "name": "Custom user block", "summary": "Enter the outer task manually to contain and direct every other block", "icon": "YOU" } },
   "library": {
     "eyebrow": "Block Library", "title": "Prompt blocks", "searchPlaceholder": "Search names or descriptions...",
     "searchShortcut": "/", "categoryLabel": "Prompt categories", "allCategories": "All",
     "noResults": "No matching blocks. Change the search or category.", "addBlock": "Add {name}",
-    "limitReached": "This block is already emphasized and cannot be added again", "limitLabel": "{name} is emphasized"
+    "limitReached": "This block is already emphasized and cannot be added again", "limitLabel": "{name} is emphasized",
+    "userLimitReached": "Only one user block can be used at a time", "userLimitLabel": "{name} is unavailable because the canvas already has a user block"
   },
   "composer": {
     "eyebrow": "Composition Canvas", "title": "Prompt composer",
@@ -20,7 +22,7 @@
   "generate": {
     "readyTitle": "Ready to merge", "estimate": "About {tokens} tokens · {blocks} blocks", "button": "Generate final Prompt",
     "generating": "Merging...", "emptyError": "Add at least one Prompt block",
-    "success": "Final Prompt generated", "failed": "Generation failed: {message}"
+    "success": "Final Prompt generated", "failed": "Generation failed: {message}", "userContentRequired": "Enter Prompt content for the user block first"
   },
   "result": {
     "eyebrow": "Generated Output", "title": "Final Prompt", "placeholder": "Your merged Prompt will appear here. The model combines roles and preserves key constraints.",

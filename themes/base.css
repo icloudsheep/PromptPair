@@ -6,6 +6,7 @@
   --radius-xl: 20px;
   --radius-lg: 14px;
   --role-radius: 11px;
+  --user-radius: 14px;
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --ease-in-out: cubic-bezier(.65, 0, .35, 1);
   --ease-in: cubic-bezier(.55, 0, 1, .45);
@@ -129,7 +130,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .block-editor textarea { display: block; width: 100%; min-height: 70px; resize: vertical; padding: 10px; border: 0; border-radius: 8px; outline: 0; background: #ffffff; color: var(--text); font: 450 13px/1.6 ui-monospace, monospace; }
 .block-editor textarea:focus { background: #ffffff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--block-color) 38%, transparent); }
 
+.user-container { --user-color: #6e5bd1; position: relative; min-width: 0; min-height: 0; border-radius: var(--user-radius); transform-origin: top center; transition: padding 360ms var(--ease-out), background-color var(--transition), border-radius var(--transition); }
+.user-container.resizing { overflow: hidden; }
+.user-blocks:empty { display: none; }
+.user-inner { min-width: 0; transition: margin-top 360ms var(--ease-out); }
+.user-container.has-user { padding: 18px; background: var(--user-color); }
+.user-container.has-user .user-inner { margin-top: 36px; }
+.user-blocks .prompt-block { border: 0; border-radius: 9px; background: var(--user-color); }
+.user-blocks .block-header { padding: 0; background: var(--user-color); }
+.user-blocks .drag-handle { display: none; }
+.user-blocks .block-editor { padding: 12px 0 0; background: var(--user-color); }
+.user-blocks .block-editor textarea { min-height: 96px; background: #ffffff; }
+.user-blocks .block-control { background: color-mix(in srgb, var(--user-color) 62%, #202020); }
+.user-blocks .block-control:hover { background: color-mix(in srgb, var(--user-color) 45%, #111111); }
+
 .role-container { --role-inner-gap-x: 12px; --role-inner-gap-y: 24px; position: relative; min-height: 0; padding: 16px 16px var(--role-inner-gap-y); border-radius: var(--role-radius); background: var(--role-shell); color: var(--role-on); transform-origin: top center; }
+.role-container:not(.has-roles) { padding-bottom: 16px; }
 .role-container.resizing { overflow: hidden; }
 .role-blocks { display: grid; gap: 0; }
 .role-blocks .prompt-block + .prompt-block { margin-top: 0; border-top-width: 0; border-radius: 0; }
@@ -139,7 +155,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .role-blocks .block-header,
 .role-blocks .block-editor { background: var(--block-color); }
 .role-blocks .block-editor textarea { background: #ffffff; color: var(--text); }
-.role-placeholder { margin: 0; padding: 12px 10px; border: 2px solid var(--role-dark); border-radius: 9px; color: var(--role-on); background: var(--role-dark); font-size: 13px; line-height: 1.55; text-align: left; }
+.role-placeholder { margin: 0; padding: 12px 10px; border: 2px solid var(--role-dark); border-radius: 8px; color: var(--on-block); background: var(--role-dark); font-size: 13px; line-height: 1.55; text-align: left; }
 .role-placeholder[hidden], .requirements-placeholder[hidden] { display: none; }
 .role-inner { min-height: 92px; margin: var(--role-inner-gap-y) var(--role-inner-gap-x) 0; padding: 0; position: relative; border: 0; border-radius: 11px; background: var(--role-shell); color: var(--role-on); transition: min-height var(--transition), padding var(--transition), margin var(--transition); }
 .requirements-placeholder { margin: 0; padding: 18px 14px; color: var(--role-on); font-size: 13px; line-height: 1.55; text-align: left; }
@@ -301,6 +317,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .block-stack { padding: 0; }
   .block-header { gap: 6px; padding-left: 8px; }
   .role-container { --role-inner-gap-x: 10px; --role-inner-gap-y: 20px; padding: 16px 12px var(--role-inner-gap-y); }
+  .user-container.has-user { padding: 14px; }
+  .user-container.has-user .user-inner { margin-top: 28px; }
   .role-inner { padding-right: 0; }
   .generate-meta { display: none; }
   .generate-bar .primary-button { width: 100%; }

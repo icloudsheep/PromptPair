@@ -1,5 +1,5 @@
 import { createStore } from "./core/store.js?v=20260730.3";
-import { loadApplication } from "./services/config-service.js?v=20260730.3";
+import { loadApplication, withBuiltinBlocks } from "./services/config-service.js?v=20260803.1";
 import { generatePrompt, getModelStatus } from "./services/api-service.js?v=20260730.3";
 import { initializeTheme } from "./modules/theme.js?v=20260730.3";
 import { initializeLibrary } from "./modules/library.js?v=20260730.3";
@@ -15,7 +15,8 @@ async function copyText(value, messages) {
 }
 
 async function start() {
-  const { app, messages, categories } = await loadApplication();
+  const { app, messages, categories: configuredCategories } = await loadApplication();
+  const categories = withBuiltinBlocks(configuredCategories, messages);
   document.title = messages.app.pageTitle;
   document.documentElement.lang = app.locale;
   applyMessages(messages);
@@ -33,7 +34,10 @@ async function start() {
 
   const store = createStore({ blocks: [], result: "", generating: false });
   let composer;
-  const limitReached = () => showToast(messages.library.limitReached, "error");
+  const limitReached = (block) => showToast(
+    block?.type === "user" ? messages.library.userLimitReached : messages.library.limitReached,
+    "error"
+  );
   const library = initializeLibrary({
     categories,
     messages,
@@ -46,7 +50,7 @@ async function start() {
     messages,
     categories,
     onCatalogChange(nextCategories) {
-      library.updateCategories(nextCategories);
+      library.updateCategories(withBuiltinBlocks(nextCategories, messages));
       composer.syncCatalog();
     }
   });
@@ -85,6 +89,12 @@ async function start() {
   generateButton.addEventListener("click", async () => {
     const { blocks } = store.getState();
     if (!blocks.length) { showToast(messages.generate.emptyError, "error"); return; }
+    const emptyUser = blocks.find((block) => block.type === "user" && !block.content.trim());
+    if (emptyUser) {
+      showToast(messages.generate.userContentRequired, "error");
+      composer.focusBlock(emptyUser.instanceId);
+      return;
+    }
     store.setState({ result: "", generating: true });
     resultPanel.classList.add("open");
     try {

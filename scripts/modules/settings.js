@@ -102,8 +102,8 @@ export function initializeSettings({ app, messages, categories, onCatalogChange 
     categoryFields.querySelectorAll("input, textarea, select").forEach((control) => { control.disabled = !editingCategory; });
     blockFields.querySelectorAll("input, textarea, select").forEach((control) => { control.disabled = !block; });
     addBlockButton.disabled = !category || operationBusy;
-    deleteCategoryButton.hidden = !editingCategory;
-    deleteCategoryButton.disabled = !editingCategory || operationBusy;
+    deleteCategoryButton.hidden = !editingCategory || category?.id === "user";
+    deleteCategoryButton.disabled = !editingCategory || category?.id === "user" || operationBusy;
     deleteBlockButton.hidden = !block;
     deleteBlockButton.disabled = !block || operationBusy;
     addCategoryButton.disabled = operationBusy;
@@ -116,6 +116,9 @@ export function initializeSettings({ app, messages, categories, onCatalogChange 
     form.elements.icon.value = block.icon;
     form.elements.summary.value = block.summary;
     form.elements.type.value = block.type;
+    const allowedTypes = category.id === "roles" ? ["role"] : category.id === "user" ? ["user"] : Object.keys(messages.types).filter((type) => !["role", "user"].includes(type));
+    [...typeSelect.options].forEach((option) => { option.hidden = !allowedTypes.includes(option.value); });
+    typeSelect.disabled = true;
     form.elements.prompt.value = block.prompt;
   };
 
@@ -304,7 +307,7 @@ export function initializeSettings({ app, messages, categories, onCatalogChange 
     const id = uniqueId("new-block", new Set(category.blocks.map((block) => block.id)));
     const block = {
       id,
-      type: category.id === "roles" ? "role" : "instruction",
+      type: category.id === "roles" ? "role" : category.id === "user" ? "user" : "instruction",
       name: messages.settings.newBlockName,
       summary: messages.settings.newBlockSummary,
       icon: messages.settings.newBlockIcon,

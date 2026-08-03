@@ -1,6 +1,15 @@
 import { escapeHtml, icon, interpolate } from "../utils/dom.js?v=20260730.3";
 
 const MOTION = { duration: 360, easing: "cubic-bezier(.22, 1, .36, 1)" };
+const REMOVAL_STYLE_PROPERTIES = [
+  "background-color", "color", "box-shadow", "display", "visibility",
+  "border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
+  "border-top-style", "border-right-style", "border-bottom-style", "border-left-style",
+  "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
+  "border-top-left-radius", "border-top-right-radius",
+  "border-bottom-right-radius", "border-bottom-left-radius",
+  "padding-top", "padding-right", "padding-bottom", "padding-left"
+];
 
 export function initializeComposer({ store, messages, resolveBlock, onLimitReached }) {
   const canvas = document.querySelector("#composer-canvas");
@@ -12,19 +21,27 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
   let suppressReconcile = false;
   let renderedBlocks = null;
   let shellResizeAnimation = null;
+  let userResizeAnimation = null;
   let slotTransitionFrame = null;
 
   stack.innerHTML = `
-    <section class="role-container">
-      <div class="role-blocks"></div>
-      <p class="role-placeholder">${escapeHtml(messages.composer.roleEmpty)}</p>
-      <div class="role-inner is-empty">
-        <p class="requirements-placeholder">${escapeHtml(messages.composer.requirementsEmpty)}</p>
-        <div class="requirement-blocks"></div>
+    <section class="user-container">
+      <div class="user-blocks"></div>
+      <div class="user-inner">
+        <section class="role-container">
+          <div class="role-blocks"></div>
+          <p class="role-placeholder">${escapeHtml(messages.composer.roleEmpty)}</p>
+          <div class="role-inner is-empty">
+            <p class="requirements-placeholder">${escapeHtml(messages.composer.requirementsEmpty)}</p>
+            <div class="requirement-blocks"></div>
+          </div>
+          <div class="role-slot" aria-hidden="true"></div>
+        </section>
       </div>
-      <div class="role-slot" aria-hidden="true"></div>
     </section>
   `;
+  const userContainer = stack.querySelector(".user-container");
+  const userBlocks = stack.querySelector(".user-blocks");
   const roleContainer = stack.querySelector(".role-container");
   const roleBlocks = stack.querySelector(".role-blocks");
   const requirementBlocks = stack.querySelector(".requirement-blocks");
@@ -73,6 +90,7 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
       joinsNext ? "joins-next" : ""
     ].filter(Boolean).join(" " );
     element.style.setProperty("--block-color", block.color);
+    element.draggable = block.type !== "user";
     element.querySelector(".block-order").textContent = String(index + 1).padStart(2, "0");
     element.querySelector(".block-title").textContent = block.name;
     const emphasis = element.querySelector(".block-emphasis");
@@ -106,10 +124,25 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     remove.ariaLabel = interpolate(messages.composer.remove, { name: block.name });
   };
 
+  const freezeRemovalAppearance = (source, ghost) => {
+    const sourceNodes = [source, ...source.querySelectorAll("*")];
+    const ghostNodes = [ghost, ...ghost.querySelectorAll("*")];
+    sourceNodes.forEach((sourceNode, index) => {
+      const style = getComputedStyle(sourceNode);
+      const ghostNode = ghostNodes[index];
+      if (!ghostNode) return;
+      REMOVAL_STYLE_PROPERTIES.forEach((property) => {
+        ghostNode.style.setProperty(property, style.getPropertyValue(property));
+      });
+    });
+  };
+
   const reconcile = (state) => {
     if (suppressReconcile || state.blocks === renderedBlocks) return;
     renderedBlocks = state.blocks;
     const oldShellHeight = roleContainer.getBoundingClientRect().height;
+    const oldUserHeight = userContainer.getBoundingClientRect().height;
+    const hadUser = userContainer.classList.contains("has-user");
     const oldSlotStyle = getComputedStyle(roleSlot);
     const oldSlotState = {
       height: oldSlotStyle.height,
@@ -120,6 +153,8 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     const wasSlotVisible = roleSlot.classList.contains("is-visible");
     shellResizeAnimation?.cancel();
     shellResizeAnimation = null;
+    userResizeAnimation?.cancel();
+    userResizeAnimation = null;
     if (slotTransitionFrame !== null) {
       window.cancelAnimationFrame(slotTransitionFrame);
       slotTransitionFrame = null;
@@ -132,9 +167,12 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     roleSlot.style.removeProperty("transform");
     roleContainer.style.removeProperty("height");
     roleContainer.classList.remove("resizing");
+    userContainer.style.removeProperty("height");
+    userContainer.classList.remove("resizing");
     const oldPositions = new Map([...elements].map(([id, element]) => [id, element.getBoundingClientRect()]));
+    const users = state.blocks.filter((block) => block.type === "user");
     const roles = state.blocks.filter((block) => block.type === "role");
-    const requirements = state.blocks.filter((block) => block.type !== "role");
+    const requirements = state.blocks.filter((block) => block.type !== "role" && block.type !== "user");
     const activeIds = new Set(state.blocks.map((block) => block.instanceId));
 
     for (const [id, element] of elements) {
@@ -146,10 +184,12 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
       ghost.removeAttribute("data-instance");
       ghost.dataset.removing = "true";
       ghost.classList.add("block-removal-ghost");
+      freezeRemovalAppearance(element, ghost);
       if (rect) {
         ghost.style.left = `${rect.left - canvasRect.left + canvas.scrollLeft}px`;
         ghost.style.top = `${rect.top - canvasRect.top + canvas.scrollTop}px`;
         ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
       }
       element.remove();
       canvas.append(ghost);
@@ -189,10 +229,21 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
       });
     };
 
+    placeGroup(userBlocks, users, "user");
     placeGroup(roleBlocks, roles, "role");
     placeGroup(requirementBlocks, requirements, "requirement");
+    userContainer.classList.toggle("has-user", users.length > 0);
+    if (users[0]) userContainer.style.setProperty("--user-color", users[0].color);
+    else userContainer.style.removeProperty("--user-color");
+    roleContainer.classList.toggle("has-roles", roles.length > 0);
+    roleInner.classList.toggle("is-empty", requirements.length === 0);
+    const visibleBlocks = [...users, ...roles, ...requirements];
+    visibleBlocks.forEach((block, index) => {
+      elements.get(block.instanceId)?.querySelector(".block-order")?.replaceChildren(String(index + 1).padStart(2, "0"));
+    });
+    userContainer.getBoundingClientRect();
     const newElementSet = new Set(newElements);
-    for (const block of state.blocks) {
+    for (const block of visibleBlocks) {
       const element = elements.get(block.instanceId);
       if (newElementSet.has(element)) {
         element.animate(
@@ -213,8 +264,6 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     empty.hidden = state.blocks.length > 0;
     stack.hidden = state.blocks.length === 0;
     canvas.classList.toggle("has-blocks", state.blocks.length > 0);
-    roleContainer.classList.toggle("has-roles", roles.length > 0);
-    roleInner.classList.toggle("is-empty", requirements.length === 0);
     const isSlotVisible = roles.length > 0 && requirements.length === 0;
     roleSlot.classList.toggle("is-visible", isSlotVisible);
     rolePlaceholder.hidden = roles.length > 0;
@@ -223,7 +272,11 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     document.querySelector("#share-button").disabled = state.blocks.length === 0;
     updateEstimate(state.blocks);
 
+    // Measure both shells while they are still at their natural post-reconcile sizes.
+    // Locking the role shell first would make the outer user shell report the old
+    // height and skip its own resize animation for tall compositions.
     const newShellHeight = roleContainer.getBoundingClientRect().height;
+    const newUserHeight = userContainer.getBoundingClientRect().height;
     if (wasSlotVisible !== isSlotVisible) {
       roleSlot.style.height = oldSlotState.height;
       roleSlot.style.marginTop = oldSlotState.marginTop;
@@ -256,16 +309,32 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
         roleContainer.classList.remove("resizing");
       });
     }
+    const hasUser = users.length > 0;
+    if (oldUserHeight > 0 && (hadUser !== hasUser || Math.abs(oldUserHeight - newUserHeight) > 1)) {
+      userContainer.classList.add("resizing");
+      userContainer.style.height = `${oldUserHeight}px`;
+      userResizeAnimation = userContainer.animate(
+        [{ height: `${oldUserHeight}px` }, { height: `${newUserHeight}px` }],
+        MOTION
+      );
+      const currentAnimation = userResizeAnimation;
+      currentAnimation.finished.catch(() => {}).finally(() => {
+        if (userResizeAnimation !== currentAnimation) return;
+        userResizeAnimation = null;
+        userContainer.style.removeProperty("height");
+        userContainer.classList.remove("resizing");
+      });
+    }
   };
 
   const groupOrderFromDom = (container) => [...container.querySelectorAll(":scope > .prompt-block")]
     .map((element) => element.dataset.instance);
 
-  const applyGroupOrder = (blocks, groupOrder, roleGroup) => {
+  const applyGroupOrder = (blocks, groupOrder, matchesGroup) => {
     const byId = new Map(blocks.map((block) => [block.instanceId, block]));
     let groupIndex = 0;
     return blocks.map((block) => {
-      if ((block.type === "role") !== roleGroup) return block;
+      if (!matchesGroup(block)) return block;
       return byId.get(groupOrder[groupIndex++]) || block;
     });
   };
@@ -275,16 +344,17 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     const roleOrder = groupOrderFromDom(roleBlocks);
     const requirementOrder = groupOrderFromDom(requirementBlocks);
     const previewBlocks = applyGroupOrder(
-      applyGroupOrder(state.blocks, roleOrder, true),
+      applyGroupOrder(state.blocks, roleOrder, (block) => block.type === "role"),
       requirementOrder,
-      false
+      (block) => block.type !== "role" && block.type !== "user"
     );
-    const visibleOrder = [...roleOrder, ...requirementOrder];
+    const userOrder = groupOrderFromDom(userBlocks);
+    const visibleOrder = [...userOrder, ...roleOrder, ...requirementOrder];
     visibleOrder.forEach((instanceId, index) => {
       elements.get(instanceId)?.querySelector(".block-order")?.replaceChildren(String(index + 1).padStart(2, "0"));
     });
     if (container === requirementBlocks) {
-      const previewRequirements = previewBlocks.filter((block) => block.type !== "role");
+      const previewRequirements = previewBlocks.filter((block) => block.type !== "role" && block.type !== "user");
       previewRequirements.forEach((block, index) => {
         const element = elements.get(block.instanceId);
         element?.classList.toggle("joins-previous", previewRequirements[index - 1]?.categoryId === block.categoryId);
@@ -298,7 +368,19 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     reconcile(store.getState());
   };
 
+  const clearDragVisualState = () => {
+    canvas.classList.remove("drag-over");
+    stack.querySelectorAll(".prompt-block.dragging").forEach((element) => element.classList.remove("dragging"));
+  };
+
   const addBlock = (block) => {
+    if (block.type === "user") {
+      const existingUser = store.getState().blocks.find((item) => item.type === "user");
+      if (existingUser) {
+        onLimitReached?.(block);
+        return false;
+      }
+    }
     const sourceKey = `${block.categoryId}:${block.id}`;
     const existing = store.getState().blocks.find(
       (item) => `${item.categoryId}:${item.sourceId}` === sourceKey
@@ -309,17 +391,29 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     }
     store.setState((state) => {
       const current = state.blocks.find((item) => `${item.categoryId}:${item.sourceId}` === sourceKey);
-      if (current) {
+      if (current && block.type !== "user") {
         return { blocks: state.blocks.map((item) => item.instanceId === current.instanceId ? { ...item, emphasized: true } : item) };
       }
-      return { blocks: [...state.blocks, {
+      const instance = {
         instanceId: crypto.randomUUID(), sourceId: block.id, name: block.name, type: block.type,
         categoryId: block.categoryId, categoryName: block.categoryName, color: block.color,
         sourcePrompt: block.prompt, content: block.prompt, emphasized: false
-      }] };
+      };
+      return { blocks: block.type === "user" ? [instance, ...state.blocks] : [...state.blocks, instance] };
     });
-    window.requestAnimationFrame(() => canvas.scrollTo({ top: canvas.scrollHeight, behavior: "smooth" }));
+    window.requestAnimationFrame(() => {
+      canvas.scrollTo({ top: canvas.scrollHeight, behavior: "smooth" });
+      if (block.type === "user") {
+        const instance = store.getState().blocks.find((item) => `${item.categoryId}:${item.sourceId}` === sourceKey);
+        focusBlock(instance?.instanceId);
+      }
+    });
     return true;
+  };
+
+  const focusBlock = (instanceId) => {
+    const textarea = elements.get(instanceId)?.querySelector("textarea");
+    textarea?.focus();
   };
 
   const syncCatalog = () => {
@@ -352,7 +446,10 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
   });
   stack.addEventListener("dragstart", (event) => {
     const article = event.target.closest(".prompt-block");
-    if (!article) return;
+    if (!article || article.dataset.group === "user") {
+      event.preventDefault();
+      return;
+    }
     draggedId = article.dataset.instance;
     dragCommitted = false;
     article.classList.add("dragging");
@@ -361,6 +458,7 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
   stack.addEventListener("dragend", (event) => {
     event.target.closest(".prompt-block")?.classList.remove("dragging");
     if (!dragCommitted && draggedId) restoreRenderedOrder();
+    clearDragVisualState();
     draggedId = null;
     dragCommitted = false;
   });
@@ -397,19 +495,24 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
     if (!sourceElement) return;
     event.preventDefault();
     event.stopPropagation();
-    const roleGroup = sourceElement.parentElement === roleBlocks;
+    const matchesGroup = sourceElement.parentElement === roleBlocks
+      ? (block) => block.type === "role"
+      : (block) => block.type !== "role" && block.type !== "user";
     const groupOrder = groupOrderFromDom(sourceElement.parentElement);
     dragCommitted = true;
     store.setState(({ blocks }) => {
-      return { blocks: applyGroupOrder(blocks, groupOrder, roleGroup) };
+      return { blocks: applyGroupOrder(blocks, groupOrder, matchesGroup) };
     });
+    clearDragVisualState();
     draggedId = null;
   });
   canvas.addEventListener("dragover", (event) => { event.preventDefault(); canvas.classList.add("drag-over"); });
-  canvas.addEventListener("dragleave", (event) => { if (!canvas.contains(event.relatedTarget)) canvas.classList.remove("drag-over"); });
+  canvas.addEventListener("dragleave", (event) => {
+    if (!canvas.contains(event.relatedTarget)) canvas.classList.remove("drag-over");
+  });
   canvas.addEventListener("drop", (event) => {
     event.preventDefault();
-    canvas.classList.remove("drag-over");
+    clearDragVisualState();
     const value = event.dataTransfer.getData("application/x-promptpair-block");
     if (!value) return;
     try {
@@ -418,8 +521,10 @@ export function initializeComposer({ store, messages, resolveBlock, onLimitReach
       if (resolved) addBlock(resolved);
     } catch { return; }
   });
+  window.addEventListener("dragend", clearDragVisualState);
+  window.addEventListener("drop", clearDragVisualState);
 
   store.subscribe(reconcile);
   reconcile(store.getState());
-  return { addBlock, syncCatalog };
+  return { addBlock, syncCatalog, focusBlock };
 }

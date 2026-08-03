@@ -16,6 +16,7 @@ export function parseRecipe(code, resolveBlock) {
     throw new Error("Invalid recipe");
   }
   const counts = new Map();
+  let userCount = 0;
   return data.blocks.map((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid recipe block");
     const source = resolveBlock(item.category, item.block);
@@ -24,6 +25,9 @@ export function parseRecipe(code, resolveBlock) {
     }
     const sourceKey = `${source.categoryId}:${source.id}`;
     if (counts.has(sourceKey)) throw new Error("Recipe block limit exceeded");
+    if (source.type === "user" && (++userCount > 1 || item.emphasized)) {
+      throw new Error("Only one non-emphasized user block is allowed");
+    }
     counts.set(sourceKey, 1);
     return {
       instanceId: crypto.randomUUID(),
